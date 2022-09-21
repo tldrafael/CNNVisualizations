@@ -2,7 +2,6 @@ import os
 import sys
 from torch.utils.data import DataLoader
 from gradcam import GradCAMModel, CAMImage
-# sys.path.append(os.environ['PISSS_DIR'])
 import datapipe as dp
 import utils as ut
 import training as tr
