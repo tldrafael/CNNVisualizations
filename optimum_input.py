@@ -8,7 +8,7 @@ class OptimumInput:
     def __init__(self, gc_model):
         self.gc_model = gc_model
 
-    def generate(self, class_ix=True, neuron_pos=None, neuron_layer_ix=0, lr=50, reg_l2=1e-9, n_its=1000,
+    def generate(self, class_ix=True, neuron_pos=None, neuron_layer_ix=0, lr=50, reg_l2=1e-3, n_its=1000,
                  input_shape=(1, 3, 352, 288)):
         input_ = torch.zeros(input_shape)
         best_logits = -np.inf
@@ -33,15 +33,9 @@ class OptimumInput:
                 grad_neuron_wrt_input = grad_out_wrt_input / (grad_out_wrt_neuron + 1e-8)
             else:
                 grad_neuron_wrt_input = grad_out_wrt_input
-
             grad_term = grad_neuron_wrt_input / grad_neuron_wrt_input.norm()
-            grad_term = (grad_term - reg_l2 * input_)
-            input_ = (input_ + lr * grad_term).detach()
 
             input_ = input_.detach()
-            input_ = dp.augs.normalize_invert(input_)
-            input_ = dp.augs.normalize(input_.clip(0, 1))
-
             input_ = F.gaussian_blur(input_, kernel_size=3)
             if it > (n_its / 10):
                 small_value = 5e-3
@@ -49,6 +43,10 @@ class OptimumInput:
                 small_value = 2e-4
                 mask_small_grads = (grad_term < small_value) & (grad_term > -small_value)
                 input_[mask_small_values & mask_small_grads] = 0
+
+            input_ = input_ + lr * grad_term - reg_l2 * input_
+            input_ = dp.augs.normalize_invert(input_)
+            input_ = dp.augs.normalize(input_.clip(0, 1))
 
             if it % (n_its // 10) == 0:
                 input_im = dp.augs.normalize_invert(input_)[0]
