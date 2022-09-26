@@ -1,14 +1,14 @@
 import numpy as np
 import torch
-import datapipe as dp
 import torchvision.transforms.functional as F
+import utils as ut
 
 
 class OptimumInput:
     def __init__(self, gc_model):
         self.gc_model = gc_model
 
-    def generate(self, class_ix=True, neuron_pos=None, neuron_layer_ix=0, lr=50, reg_l2=1e-3, n_its=1000,
+    def generate(self, class_ix=True, neuron_pos=None, lr=50, reg_l2=1e-3, n_its=1000,
                  input_shape=(1, 3, 352, 288)):
         input_ = torch.zeros(input_shape)
         best_logits = -np.inf
@@ -26,6 +26,7 @@ class OptimumInput:
             if ix_logits > best_logits:
                 best_logits = ix_logits
                 input_best = input_.detach().clone()
+                input_best = ut.augs.normalize_invert(input_).clip(0, 1)
 
             grad_out_wrt_input = input_.grad.clone()
             if neuron_pos is not None:
@@ -45,14 +46,14 @@ class OptimumInput:
                 input_[mask_small_values & mask_small_grads] = 0
 
             input_ = input_ + lr * grad_term - reg_l2 * input_
-            input_ = dp.augs.normalize_invert(input_)
-            input_ = dp.augs.normalize(input_.clip(0, 1))
+            input_ = ut.augs.normalize_invert(input_).clip(0, 1)
+            input_ = ut.augs.normalize(input_)
 
             if it % (n_its // 10) == 0:
-                input_im = dp.augs.normalize_invert(input_)[0]
+                input_im = ut.augs.normalize_invert(input_)[0]
                 list_res.append(input_im)
 
-            return input_best, list_res
+        return input_best, list_res
 
     def generate_perclass(self, n_classes=12):
         list_res = []

@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import torch
 import torchvision.transforms.functional as F
 from torch.autograd import Function
-import datapipe as dp
+import utils as ut
 
 
 def merge_cam_on_image(img, mask, alpha=0.5):
@@ -21,16 +21,16 @@ class CAMImage:
         self.input_ = input_
 
         if self.image is None:
-            self.image = dp.get_image_from_input_tensor(self.input_)
+            self.image = ut.get_image_from_input_tensor(self.input_)
 
         if self.input_ is None:
-            self.input_ = dp.get_input_tensor_from_image(self.image)
-        self.input_.requires_grad =True
+            self.input_ = ut.get_input_tensor_from_image(self.image)
+        self.input_.requires_grad = True
 
     def generate_cams(self, gc_model):
         device = next(gc_model.model.parameters()).device
-        out_logits = gc_model(self.input_.to(device))[0]
-        self.out_preds = out_logits.argmax(0)
+        self.out_logits = gc_model(self.input_.to(device))[0]
+        self.out_preds = self.out_logits.argmax(0)
         self.out_classes = torch.unique(self.out_preds).cpu().numpy().tolist()
         self.grads_input = {ix: None for ix in self.out_classes}
         self.heatmap = {ix: None for ix in self.out_classes}
@@ -39,7 +39,7 @@ class CAMImage:
         for ix_cl in self.out_classes:
             gc_model.model.zero_grad()
             # Backpropagate class logits
-            ix_logits = out_logits[ix_cl, self.out_preds == ix_cl]
+            ix_logits = self.out_logits[ix_cl, self.out_preds == ix_cl]
             ix_logits.sum().backward(retain_graph=True)
             self.grads_input[ix_cl] = self.input_.grad[0].clone()
             self.heatmap[ix_cl] = gc_model.compute_cam()[0].cpu().detach().numpy()
@@ -47,9 +47,9 @@ class CAMImage:
 
     def prepare_plot_line(self):
         n_classes = len(self.out_classes)
-        fig, axs = plt.subplots(1, n_classes, figsize=((4 * n_classes) // 1, 5))
-        [a.set_axis_off() for a in axs]
-        return fig, axs
+        fig, axs = plt.subplots(1, n_classes, figsize=((4 * n_classes) // 1, 5), squeeze=False)
+        [a.set_axis_off() for a in axs.ravel()]
+        return fig, axs.ravel()
 
     def plot_heatmap_line(self):
         fig, axs = self.prepare_plot_line()
@@ -79,7 +79,7 @@ class GradCAMModel:
     def __init__(self, model, target_layers, fl_guided=False, **kwargs):
         self.model = model
         if fl_guided:
-            self.model.apply(lambda m: replace_layer(m, torch.nn.modules.activation.ReLU, GuidedReLU()));
+            self.model.apply(lambda m: replace_layer(m, torch.nn.modules.activation.ReLU, GuidedReLU()))
 
         self.target_layers = target_layers
         self.activations = self.instantiate_list()
@@ -151,8 +151,8 @@ def replace_layer(module, old_layer, new_layer):
 class GuidedModel(GradCAMModel):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.model.apply(lambda m: replace_layer(m, torch.nn.modules.activation.ReLU, GuidedReLU()));
+        self.model.apply(lambda m: replace_layer(m, torch.nn.modules.activation.ReLU, GuidedReLU()))
 
 
 def revert_guidedmodel(guided_model):
-    return guided_model.apply(lambda m: replace_layer(m, GuidedReLU, torch.nn.modules.activation.ReLU()));
+    return guided_model.apply(lambda m: replace_layer(m, GuidedReLU, torch.nn.modules.activation.ReLU()))
