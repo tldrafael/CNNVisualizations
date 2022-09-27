@@ -30,6 +30,7 @@ class CAMImage:
     def generate_cams(self, gc_model):
         device = next(gc_model.model.parameters()).device
         self.out_logits = gc_model(self.input_.to(device))[0]
+        import pdb; pdb.set_trace()
         self.out_preds = self.out_logits.argmax(0)
         self.out_classes = torch.unique(self.out_preds).cpu().numpy().tolist()
         self.grads_input = {ix: None for ix in self.out_classes}
