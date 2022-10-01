@@ -1,12 +1,13 @@
 import os
 import json
 import numpy as np
-import torch
-import torchvision.transforms as T
-import torchvision as tv
 import matplotlib.pyplot as plt
 from types import SimpleNamespace
 from IPython import display
+import torch
+import torchvision.transforms as T
+import torchvision as tv
+from torch.distributions.bernoulli import Bernoulli
 
 
 augs = SimpleNamespace()
@@ -63,3 +64,7 @@ def plot_grid(grid, use_display=False, is_grid=False, nrows=1, ncols=None, figsi
     plt.axis('off')
     if use_display:
         display.display(plt.gcf())
+
+
+def decide_randomly(p, thrs=.5):
+    return Bernoulli(p).sample((1,)).item() > thrs

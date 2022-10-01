@@ -9,13 +9,25 @@ class OptimumInput:
         self.gc_model = gc_model
 
     def generate(self, class_ix=True, neuron_pos=None, lr=50, reg_l2=1e-3, n_its=1000,
-                 input_shape=(1, 3, 352, 288)):
+                 input_shape=(1, 3, 352, 288), p_jitter=.5, p_blur=1, p_setnull=1):
         input_ = torch.zeros(input_shape)
         best_logits = -np.inf
         list_res = []
 
         for it in range(n_its):
             input_ = input_.clone()
+
+            fl_jitter = False
+            if ut.decide_randomly(p_jitter):
+                fl_jitter = True
+                mark_h = torch.randint(size=(1,), high=input_.shape[2])
+                mark_w = torch.randint(size=(1,), high=input_.shape[3])
+                input_ = torch.concat([input_[:, :, :mark_h], input_[:, :, mark_h:]], axis=2)
+                input_ = torch.concat([input_[..., :mark_w], input_[..., mark_w:]], axis=3)
+
+            if ut.decide_randomly(p_blur):
+                input_ = F.gaussian_blur(input_, kernel_size=3)
+
             input_.requires_grad = True
             self.gc_model.model.zero_grad()
 
@@ -37,15 +49,21 @@ class OptimumInput:
             grad_term = grad_neuron_wrt_input / grad_neuron_wrt_input.norm()
 
             input_ = input_.detach()
-            input_ = F.gaussian_blur(input_, kernel_size=3)
-            if it > (n_its / 10):
+            input_ = input_ + lr * grad_term - reg_l2 * input_
+
+            # Set points of small grads or values to zero to avoid noise from them
+            if it > 50 and ut.decide_randomly(p_setnull):
                 small_value = 5e-3
                 mask_small_values = (input_ < small_value) & (input_ > -small_value)
                 small_value = 2e-4
                 mask_small_grads = (grad_term < small_value) & (grad_term > -small_value)
                 input_[mask_small_values & mask_small_grads] = 0
 
-            input_ = input_ + lr * grad_term - reg_l2 * input_
+            # Undo jitter
+            if fl_jitter:
+                input_ = torch.concat([input_[..., mark_w:], input_[..., :mark_w]], axis=3)
+                input_ = torch.concat([input_[:, :, mark_h:], input_[:, :, :mark_h]], axis=2)
+
             input_ = ut.augs.normalize_invert(input_).clip(0, 1)
             input_ = ut.augs.normalize(input_)
 
