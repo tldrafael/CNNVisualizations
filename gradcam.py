@@ -105,10 +105,10 @@ class GradCAMModel:
             self.grads[i] = grad_output[0].clone()
         return save_layer_grad
 
-    def compute_cam(self, fl_negative_grads=False):
+    def compute_cam(self, fl_avoid_negatives=False):
         for i in range(len(self.activations)):
-            grads_i = self.grads[i].clamp(min=0) if fl_negative_grads else self.grads[i]
-            activations_i = self.activations[i].clamp(min=0) if fl_negative_grads else self.activations[i]
+            grads_i = self.grads[i].clamp(min=0) if fl_avoid_negatives else self.grads[i]
+            activations_i = self.activations[i].clamp(min=0) if fl_avoid_negatives else self.activations[i]
 
             self.cams[i] = grads_i.mean(axis=[2, 3], keepdim=True) * activations_i
             # ReLU operation

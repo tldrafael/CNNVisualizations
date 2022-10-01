@@ -1,3 +1,5 @@
+import os
+import json
 import numpy as np
 import torch
 import torchvision.transforms as T
@@ -10,6 +12,11 @@ from IPython import display
 augs = SimpleNamespace()
 augs.normalize = T.Normalize(mean=[.485, .456, .406], std=[.229, .224, .225])
 augs.normalize_invert = T.Normalize(mean=[-.485 / .229, -.456 / .224, -.406 / .225], std=[1 / .229, 1 / .224, 1 / .225])
+
+here = os.path.abspath(os.path.dirname(__file__))
+with open(os.path.join(here, 'imagenet_class_index.json'), 'r') as f:
+    imagenet_json = json.load(f)
+imagenet_label = [imagenet_json[str(k)][1] for k in range(len(imagenet_json))]
 
 
 def get_image_from_input_tensor(inp_image, ix=0):
