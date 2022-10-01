@@ -43,7 +43,7 @@ def normalize_minmax_gentle(x, upper=0.98, lower=0.02):
     return x.clip(min=0, max=1)
 
 
-def plot_grid(grid, use_display=False, is_grid=False, nrows=1, ncols=None, figsize=None):
+def plot_grid(grid, use_display=False, is_grid=False, nrows=1, ncols=None, figsize=None, subtitles=None):
     if ncols is None:
         if isinstance(grid, list):
             ncols = len(grid)
@@ -62,6 +62,10 @@ def plot_grid(grid, use_display=False, is_grid=False, nrows=1, ncols=None, figsi
         plt.figure(figsize=figsize)
     plt.imshow(grid.cpu().permute(1, 2, 0))
     plt.axis('off')
+
+    if subtitles is not None:
+        plt.title(subtitles)
+
     if use_display:
         display.display(plt.gcf())
 

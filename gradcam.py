@@ -76,7 +76,7 @@ class CAMImage:
 
 
 class GradCAMModel:
-    def __init__(self, model, target_layers, fl_guided=False, **kwargs):
+    def __init__(self, model, target_layers=[], fl_guided=False, **kwargs):
         self.model = model
         if fl_guided:
             self.model.apply(lambda m: replace_layer(m, torch.nn.modules.activation.ReLU, GuidedReLU()))
