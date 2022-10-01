@@ -27,10 +27,9 @@ class CAMImage:
             self.input_ = ut.get_input_tensor_from_image(self.image)
         self.input_.requires_grad = True
 
-    def generate_cams(self, gc_model):
+    def generate_cams(self, gc_model, **kwargs):
         device = next(gc_model.model.parameters()).device
         self.out_logits = gc_model(self.input_.to(device))[0]
-        import pdb; pdb.set_trace()
         self.out_preds = self.out_logits.argmax(0)
         self.out_classes = torch.unique(self.out_preds).cpu().numpy().tolist()
         self.grads_input = {ix: None for ix in self.out_classes}
@@ -43,7 +42,7 @@ class CAMImage:
             ix_logits = self.out_logits[ix_cl, self.out_preds == ix_cl]
             ix_logits.sum().backward(retain_graph=True)
             self.grads_input[ix_cl] = self.input_.grad[0].clone()
-            self.heatmap[ix_cl] = gc_model.compute_cam()[0].cpu().detach().numpy()
+            self.heatmap[ix_cl] = gc_model.compute_cam(**kwargs)[0].cpu().detach().numpy()
             self.heatmap_merged[ix_cl] = merge_cam_on_image(self.image, self.heatmap[ix_cl])
 
     def prepare_plot_line(self):
@@ -106,16 +105,19 @@ class GradCAMModel:
             self.grads[i] = grad_output[0].clone()
         return save_layer_grad
 
-    def compute_cam(self):
+    def compute_cam(self, fl_negative_grads=False):
         for i in range(len(self.activations)):
-            self.cams[i] = torch.mean(self.grads[i], axis=[2, 3], keepdim=True) * self.activations[i]
+            grads_i = self.grads[i].clamp(min=0) if fl_negative_grads else self.grads[i]
+            activations_i = self.activations[i].clamp(min=0) if fl_negative_grads else self.activations[i]
+
+            self.cams[i] = grads_i.mean(axis=[2, 3], keepdim=True) * activations_i
             # ReLU operation
             self.cams[i] = self.cams[i].sum(axis=1).clamp(min=0)
 
         class_cam = [F.resize(x, self.input_shape) for x in self.cams]
         class_cam = torch.stack(class_cam).mean(0)
         # Max-min scale
-        return (class_cam - class_cam.min()) / (class_cam.max() - class_cam.min())
+        return (class_cam - class_cam.min()) / (class_cam.max() - class_cam.min() + 1e-8)
 
     def __call__(self, inputs):
         self.input_shape = inputs.shape[2:]
