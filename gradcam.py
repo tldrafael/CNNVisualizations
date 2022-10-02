@@ -51,11 +51,12 @@ class CAMImage:
         [a.set_axis_off() for a in axs.ravel()]
         return fig, axs.ravel()
 
-    def plot_heatmap_line(self):
+    def plot_heatmap_line(self, fl_title=True):
         fig, axs = self.prepare_plot_line()
         for a, (k, v) in zip(axs, self.heatmap_merged.items()):
-            a.set_title('class: {}'.format(k))
             a.imshow(v)
+            if fl_title:
+                a.set_title('class: {}'.format(k))
 
     def plot_input_saliency(self, fl_abs=True, fl_gentle=False, gentle_bound=.2):
         fig, axs = self.prepare_plot_line()
@@ -107,10 +108,12 @@ class GradCAMModel:
 
     def compute_cam(self, fl_avoid_negatives=False):
         for i in range(len(self.activations)):
-            grads_i = self.grads[i].clamp(min=0) if fl_avoid_negatives else self.grads[i]
-            activations_i = self.activations[i].clamp(min=0) if fl_avoid_negatives else self.activations[i]
+            if fl_avoid_negatives:
+                self.cams[i] = self.grads[i].clamp(min=0).mean(axis=[2, 3], keepdim=True) * \
+                                self.activations[i].clamp(min=0)
+            else:
+                self.cams[i] = self.grads[i].mean(axis=[2, 3], keepdim=True) * self.activations[i]
 
-            self.cams[i] = grads_i.mean(axis=[2, 3], keepdim=True) * activations_i
             # ReLU operation
             self.cams[i] = self.cams[i].sum(axis=1).clamp(min=0)
 
