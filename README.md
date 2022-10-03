@@ -1,6 +1,6 @@
 # README 
 
-See the repo tutorial on ![](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/15jDSPdGYmXplrqJUVZq_fPqyTbcZgXFk?usp=sharing).
+See the repo tutorial on [![](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/15jDSPdGYmXplrqJUVZq_fPqyTbcZgXFk?usp=sharing).
 
 The topics approached on this repo are:
   + Region importance at any layer using [Grad-CAM](https://arxiv.org/abs/1610.02391).
@@ -25,6 +25,8 @@ The images bellow illustrate the RTK Dataset.
 
 ### Adversarial Examples
 
+The rows follows the respective order: the adversarial example, the isolated noised (scaled 3x for better visualization), and the prediction results.
+
 ![](./cache/RTK_adversarials.png)
 
 ## Classification
@@ -33,15 +35,17 @@ The images bellow illustrate the ImageNet.
 
 ### GradCAM
 
-![](./cache/imageNet_GradCAM.png)
+![](./cache/ImageNet_GradCAM.png)
 
 ### Input Synthesis
 
-![](./cache/imageNet_optimuminputs.png)
+![](./cache/ImageNet_optimuminput_elephant.png)
 
 ### Adversarial Examples
 
-![](./cache/imageNet_adversarials.png)
++ The noise was scaled 10x for better visualization. The adversarial predictions were: 'malinois', 'screw', 'matchstick', 'dial telephone', and 'briard'.
+
+![](./cache/ImageNet_adversarials.png)
 
 ## References
 
