@@ -11,6 +11,38 @@ The topics approached on this repo are:
 
 The results are presented for classification and semantic segmentation.
 
+## Semantic Segmentation 
+
+The images bellow illustrate the RTK Dataset.
+
+### GradCAM
+
+![](./cache/RTK_GradCAM.png)
+
+### Input Synthesis
+
+![](./cache/RTK_optimuminputs.png)
+
+### Adversarial Examples
+
+![](./cache/RTK_adversarials.png)
+
+## Classification
+
+The images bellow illustrate the ImageNet.
+
+### GradCAM
+
+![](./cache/imageNet_GradCAM.png)
+
+### Input Synthesis
+
+![](./cache/imageNet_optimuminputs.png)
+
+### Adversarial Examples
+
+![](./cache/imageNet_adversarials.png)
+
 ## References
 
 + https://github.com/jacobgil/pytorch-grad-cam/
